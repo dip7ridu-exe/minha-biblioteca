@@ -89,6 +89,17 @@ main{max-width:1400px;margin:auto;padding:32px 20px 60px}
   cursor:pointer;
 }
 .toolbar #search{flex:1;min-width:160px}
+.toolbar select{
+  appearance:none;
+  -webkit-appearance:none;
+  -moz-appearance:none;
+  padding-right:36px;
+  cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%238d8d96' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;
+  background-position:right 14px center;
+}
+.toolbar select:hover{border-color:var(--accent)}
 .toolbar button{
   padding:11px 20px;
   border-radius:10px;
@@ -130,6 +141,19 @@ main{max-width:1400px;margin:auto;padding:32px 20px 60px}
 }
 .card:hover{border-color:var(--accent);transform:translateY(-2px)}
 .card img,.card video{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
+.card::before{
+  position:absolute;
+  top:10px;left:10px;
+  width:26px;height:26px;
+  border-radius:7px;
+  background:rgba(11,11,13,.72);
+  backdrop-filter:blur(4px);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;
+  z-index:1;
+}
+.card[data-type="image"]::before{content:'🖼'}
+.card[data-type="video"]::before{content:'🎬'}
 
 .info{
   position:absolute;
@@ -269,7 +293,7 @@ main{max-width:1400px;margin:auto;padding:32px 20px 60px}
 
 <div id="loginScreen"><div class="login-card"><h1>Minha Biblioteca</h1><p>Acesso restrito</p><input type="email" id="loginEmail" placeholder="E-mail"><input type="password" id="loginPassword" placeholder="Senha" onkeydown="if(event.key==='Enter')login()"><button onclick="login()">Entrar</button><div id="loginError"></div></div></div>
 
-<div id="app" class="hidden"><header><button class="logout" onclick="logout()">Sair</button><h1>Minha Biblioteca</h1><p>Arquivo pessoal de fotos &amp; vídeos</p></header><main><div class="toolbar"><input type="file" id="files" multiple accept="image/*,video/*"><button onclick="uploadFiles()">Enviar</button><input id="search" placeholder="Buscar arquivo"><select id="filter"><option value='all'>Todos</option><option value='image'>Imagens</option><option value='video'>Vídeos</option></select></div><div id="status"></div><div class="gallery" id="gallery"></div></main></div>
+<div id="app" class="hidden"><header><button class="logout" onclick="logout()">Sair</button><h1>Minha Biblioteca</h1><p>Arquivo pessoal de fotos &amp; vídeos</p></header><main><div class="toolbar"><input type="file" id="files" multiple accept="image/*,video/*"><button onclick="uploadFiles()">Enviar</button><input id="search" placeholder="Buscar arquivo"><select id="filter"><option value='all'>Todos</option><option value='image'>🖼 Imagens</option><option value='video'>🎬 Vídeos</option></select></div><div id="status"></div><div class="gallery" id="gallery"></div></main></div>
 
 <div class="modal" id="modal" onclick="this.style.display='none'"></div>
 
@@ -279,10 +303,12 @@ async function login(){const email=document.getElementById('loginEmail').value;c
 
 async function logout(){await client.auth.signOut();}
 
-function showApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadFiles();}
+function showApp(session){currentUserId=session.user.id;document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadFiles();}
 
-function showLogin(){document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginEmail').value='';document.getElementById('loginPassword').value='';}
+function showLogin(){currentUserId=null;document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginEmail').value='';document.getElementById('loginPassword').value='';}
 
-client.auth.onAuthStateChange((event,session)=>{if(session){showApp();}else{showLogin();}});
+client.auth.onAuthStateChange((event,session)=>{if(session){showApp(session);}else{showLogin();}});
 
-async function uploadFiles(){const files=document.getElementById('files').files;for(const f of files){document.getElementById('status').innerText='Enviando '+f.name;const name=Date.now()+'_'+f.name;const {error}=await client.storage.from(bucket).upload(name,f);if(error)alert(error.message);}loadFiles();document.getElementById('status').innerText='Upload concluído';}async function loadFiles(){const {data,error}=await client.storage.from(bucket).list('',{limit:1000});if(error)return;const gal=document.getElementById('gallery');gal.innerHTML='';for(const file of data){const {data:urlData}=client.storage.from(bucket).getPublicUrl(file.name);const url=urlData.publicUrl;const isVideo=/\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);const card=document.createElement('div');card.className='card';card.dataset.name=file.name.toLowerCase();card.dataset.type=isVideo?'video':'image';card.innerHTML=(isVideo?`<video onclick="openMedia('${url}','video')" src='${url}'></video>`:`<img onclick="openMedia('${url}','image')" src='${url}'>`)+`<div class='info'>${file.name}</div><button class='delete' onclick="deleteFile('${file.name}')">Excluir</button>`;gal.appendChild(card);}applyFilter();}async function deleteFile(name){if(!confirm('Excluir arquivo?'))return;await client.storage.from(bucket).remove([name]);loadFiles();}function openMedia(url,type){const m=document.getElementById('modal');m.style.display='flex';m.innerHTML=type==='video'?`<video controls autoplay src='${url}'></video>`:`<img src='${url}'>`;}function applyFilter(){const s=document.getElementById('search').value.toLowerCase();const t=document.getElementById('filter').value;document.querySelectorAll('.card').forEach(c=>{const ok=(t==='all'||c.dataset.type===t)&&c.dataset.name.includes(s);c.style.display=ok?'block':'none';});}document.getElementById('search').oninput=applyFilter;document.getElementById('filter').onchange=applyFilter;</script></body></html>
+let currentUserId=null;
+
+async function uploadFiles(){const files=document.getElementById('files').files;for(const f of files){document.getElementById('status').innerText='Enviando '+f.name;const name=currentUserId+'/'+Date.now()+'_'+f.name;const {error}=await client.storage.from(bucket).upload(name,f);if(error)alert(error.message);}loadFiles();document.getElementById('status').innerText='Upload concluído';}async function loadFiles(){const {data,error}=await client.storage.from(bucket).list(currentUserId,{limit:1000});if(error)return;const gal=document.getElementById('gallery');gal.innerHTML='';for(const file of data){const path=currentUserId+'/'+file.name;const {data:urlData}=client.storage.from(bucket).getPublicUrl(path);const url=urlData.publicUrl;const isVideo=/\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);const card=document.createElement('div');card.className='card';card.dataset.name=file.name.toLowerCase();card.dataset.type=isVideo?'video':'image';card.innerHTML=(isVideo?`<video onclick="openMedia('${url}','video')" src='${url}'></video>`:`<img onclick="openMedia('${url}','image')" src='${url}'>`)+`<div class='info'>${file.name}</div><button class='delete' onclick="deleteFile('${file.name}')">Excluir</button>`;gal.appendChild(card);}applyFilter();}async function deleteFile(name){if(!confirm('Excluir arquivo?'))return;await client.storage.from(bucket).remove([currentUserId+'/'+name]);loadFiles();}function openMedia(url,type){const m=document.getElementById('modal');m.style.display='flex';m.innerHTML=type==='video'?`<video controls autoplay src='${url}'></video>`:`<img src='${url}'>`;}function applyFilter(){const s=document.getElementById('search').value.toLowerCase();const t=document.getElementById('filter').value;document.querySelectorAll('.card').forEach(c=>{const ok=(t==='all'||c.dataset.type===t)&&c.dataset.name.includes(s);c.style.display=ok?'block':'none';});}document.getElementById('search').oninput=applyFilter;document.getElementById('filter').onchange=applyFilter;</script></body></html>
