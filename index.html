@@ -1,1 +1,288 @@
-<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minha Biblioteca</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:Arial;background:#141414;color:#fff}header{background:#000;padding:20px;text-align:center;position:sticky;top:0}main{max-width:1400px;margin:auto;padding:20px}.toolbar{display:flex;gap:10px;flex-wrap:wrap;background:#1d1d1d;padding:15px;border-radius:12px}.toolbar input,.toolbar button,.toolbar select{padding:10px;border-radius:8px;border:none}.toolbar button{background:#e50914;color:#fff;cursor:pointer}.gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:15px;margin-top:20px}.card{background:#222;border-radius:12px;overflow:hidden}.card img,.card video{width:100%;height:220px;object-fit:cover}.info{padding:10px}.delete{width:100%;background:#b91c1c;color:#fff;border:none;padding:10px}.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);justify-content:center;align-items:center}.modal img,.modal video{max-width:90%;max-height:90%}</style></head><body><header><h1>📚 Minha Biblioteca</h1><p>Google Fotos + Netflix</p></header><main><div class="toolbar"><input type="file" id="files" multiple accept="image/*,video/*"><button onclick="uploadFiles()">Enviar</button><input id="search" placeholder="Buscar arquivo"><select id="filter"><option value='all'>Todos</option><option value='image'>Imagens</option><option value='video'>Vídeos</option></select></div><div id="status"></div><div class="gallery" id="gallery"></div></main><div class="modal" id="modal" onclick="this.style.display='none'"></div><script>const SUPABASE_URL='https://uwywbspdbmxrnmkdborm.supabase.co';const SUPABASE_KEY='sb_publishable_AVWh-xt26lQJcZuf0r9xSw_Gxrmjbt5';const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const bucket='midias';async function uploadFiles(){const files=document.getElementById('files').files;for(const f of files){document.getElementById('status').innerText='Enviando '+f.name;const name=Date.now()+'_'+f.name;const {error}=await client.storage.from(bucket).upload(name,f);if(error)alert(error.message);}loadFiles();document.getElementById('status').innerText='Upload concluído';}async function loadFiles(){const {data,error}=await client.storage.from(bucket).list('',{limit:1000});if(error)return;const gal=document.getElementById('gallery');gal.innerHTML='';for(const file of data){const {data:urlData}=client.storage.from(bucket).getPublicUrl(file.name);const url=urlData.publicUrl;const isVideo=/\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);const card=document.createElement('div');card.className='card';card.dataset.name=file.name.toLowerCase();card.dataset.type=isVideo?'video':'image';card.innerHTML=(isVideo?`<video onclick="openMedia('${url}','video')" src='${url}'></video>`:`<img onclick="openMedia('${url}','image')" src='${url}'>`)+`<div class='info'>${file.name}</div><button class='delete' onclick="deleteFile('${file.name}')">Excluir</button>`;gal.appendChild(card);}applyFilter();}async function deleteFile(name){if(!confirm('Excluir arquivo?'))return;await client.storage.from(bucket).remove([name]);loadFiles();}function openMedia(url,type){const m=document.getElementById('modal');m.style.display='flex';m.innerHTML=type==='video'?`<video controls autoplay src='${url}'></video>`:`<img src='${url}'>`;}function applyFilter(){const s=document.getElementById('search').value.toLowerCase();const t=document.getElementById('filter').value;document.querySelectorAll('.card').forEach(c=>{const ok=(t==='all'||c.dataset.type===t)&&c.dataset.name.includes(s);c.style.display=ok?'block':'none';});}document.getElementById('search').oninput=applyFilter;document.getElementById('filter').onchange=applyFilter;loadFiles();</script></body></html>
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Minha Biblioteca</title><script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Work+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"><style>
+:root{
+  --bg:#0b0b0d;
+  --surface:#17171b;
+  --surface-2:#1e1e23;
+  --border:#2a2a30;
+  --text:#f2f0ea;
+  --text-muted:#8d8d96;
+  --accent:#d4a857;
+  --accent-dim:rgba(212,168,87,.14);
+  --danger:#b5453a;
+  --radius:16px;
+  --font-display:'Fraunces',serif;
+  --font-body:'Work Sans',sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:var(--font-body);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+
+header{
+  position:relative;
+  background:rgba(11,11,13,.85);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:28px 20px 22px;
+  text-align:center;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+header h1{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:clamp(28px,4vw,38px);
+  letter-spacing:-.02em;
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+}
+header h1::before{
+  content:'';
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent);
+  display:inline-block;
+}
+header p{
+  margin-top:6px;
+  font-size:12px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+}
+
+main{max-width:1400px;margin:auto;padding:32px 20px 60px}
+
+.toolbar{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  align-items:center;
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:16px;
+  border-radius:var(--radius);
+}
+.toolbar input,.toolbar select{
+  padding:11px 14px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:14px;
+  outline:none;
+  transition:border-color .15s ease;
+}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--accent)}
+.toolbar input[type="file"]{color:var(--text-muted);max-width:260px}
+.toolbar input[type="file"]::file-selector-button{
+  padding:8px 12px;
+  margin-right:10px;
+  border:none;
+  border-radius:8px;
+  background:var(--accent-dim);
+  color:var(--accent);
+  font-family:var(--font-body);
+  font-weight:500;
+  cursor:pointer;
+}
+.toolbar #search{flex:1;min-width:160px}
+.toolbar button{
+  padding:11px 20px;
+  border-radius:10px;
+  border:none;
+  background:var(--accent);
+  color:#1a1305;
+  font-family:var(--font-body);
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:filter .15s ease,transform .15s ease;
+}
+.toolbar button:hover{filter:brightness(1.08)}
+.toolbar button:active{transform:scale(.97)}
+
+#status{
+  min-height:20px;
+  margin-top:14px;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--accent);
+  letter-spacing:.02em;
+}
+
+.gallery{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+  gap:16px;
+  margin-top:24px;
+}
+.card{
+  position:relative;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  overflow:hidden;
+  aspect-ratio:4/5;
+  transition:border-color .2s ease,transform .2s ease;
+}
+.card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.card img,.card video{width:100%;height:100%;object-fit:cover;cursor:pointer;display:block}
+
+.info{
+  position:absolute;
+  left:0;right:0;bottom:0;
+  padding:28px 12px 10px;
+  background:linear-gradient(180deg,transparent,rgba(0,0,0,.82) 55%);
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--text);
+  letter-spacing:.01em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  pointer-events:none;
+}
+
+.delete{
+  position:absolute;
+  top:10px;right:10px;
+  width:30px;height:30px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:rgba(11,11,13,.72);
+  backdrop-filter:blur(4px);
+  color:var(--text);
+  font-size:0;
+  cursor:pointer;
+  opacity:0;
+  transition:opacity .15s ease,background .15s ease,color .15s ease;
+}
+.delete::before{content:'✕';font-size:13px}
+.card:hover .delete{opacity:1}
+.delete:hover{background:var(--danger);color:#fff}
+
+.modal{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(6,6,7,.94);
+  backdrop-filter:blur(6px);
+  justify-content:center;align-items:center;
+  z-index:20;
+}
+.modal img,.modal video{max-width:90%;max-height:90%;border-radius:8px}
+
+.logout{
+  position:absolute;
+  top:28px;right:20px;
+  padding:8px 14px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text-muted);
+  font-family:var(--font-body);
+  font-size:12px;
+  cursor:pointer;
+  transition:color .15s ease,border-color .15s ease;
+}
+.logout:hover{color:var(--text);border-color:var(--accent)}
+
+#loginScreen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.login-card{
+  width:100%;
+  max-width:360px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:36px 30px;
+  text-align:center;
+}
+.login-card h1{
+  font-family:var(--font-display);
+  font-weight:600;
+  font-size:26px;
+  letter-spacing:-.02em;
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  margin-bottom:6px;
+}
+.login-card h1::before{
+  content:'';
+  width:7px;height:7px;border-radius:50%;
+  background:var(--accent);
+  display:inline-block;
+}
+.login-card p{
+  font-size:12px;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:var(--text-muted);
+  margin-bottom:26px;
+}
+.login-card input{
+  width:100%;
+  padding:12px 14px;
+  margin-bottom:12px;
+  border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--surface-2);
+  color:var(--text);
+  font-family:var(--font-body);
+  font-size:14px;
+  outline:none;
+  transition:border-color .15s ease;
+}
+.login-card input:focus{border-color:var(--accent)}
+.login-card button{
+  width:100%;
+  padding:12px;
+  margin-top:6px;
+  border-radius:10px;
+  border:none;
+  background:var(--accent);
+  color:#1a1305;
+  font-family:var(--font-body);
+  font-weight:600;
+  font-size:14px;
+  cursor:pointer;
+  transition:filter .15s ease;
+}
+.login-card button:hover{filter:brightness(1.08)}
+#loginError{
+  min-height:16px;
+  margin-top:14px;
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--danger);
+}
+.hidden{display:none !important}
+</style></head><body>
+
+<div id="loginScreen"><div class="login-card"><h1>Minha Biblioteca</h1><p>Acesso restrito</p><input type="email" id="loginEmail" placeholder="E-mail"><input type="password" id="loginPassword" placeholder="Senha" onkeydown="if(event.key==='Enter')login()"><button onclick="login()">Entrar</button><div id="loginError"></div></div></div>
+
+<div id="app" class="hidden"><header><button class="logout" onclick="logout()">Sair</button><h1>Minha Biblioteca</h1><p>Arquivo pessoal de fotos &amp; vídeos</p></header><main><div class="toolbar"><input type="file" id="files" multiple accept="image/*,video/*"><button onclick="uploadFiles()">Enviar</button><input id="search" placeholder="Buscar arquivo"><select id="filter"><option value='all'>Todos</option><option value='image'>Imagens</option><option value='video'>Vídeos</option></select></div><div id="status"></div><div class="gallery" id="gallery"></div></main></div>
+
+<div class="modal" id="modal" onclick="this.style.display='none'"></div>
+
+<script>const SUPABASE_URL='https://uwywbspdbmxrnmkdborm.supabase.co';const SUPABASE_KEY='sb_publishable_AVWh-xt26lQJcZuf0r9xSw_Gxrmjbt5';const client=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);const bucket='midias';
+
+async function login(){const email=document.getElementById('loginEmail').value;const password=document.getElementById('loginPassword').value;const errEl=document.getElementById('loginError');errEl.innerText='';const {error}=await client.auth.signInWithPassword({email,password});if(error)errEl.innerText='E-mail ou senha inválidos';}
+
+async function logout(){await client.auth.signOut();}
+
+function showApp(){document.getElementById('loginScreen').classList.add('hidden');document.getElementById('app').classList.remove('hidden');loadFiles();}
+
+function showLogin(){document.getElementById('app').classList.add('hidden');document.getElementById('loginScreen').classList.remove('hidden');document.getElementById('loginEmail').value='';document.getElementById('loginPassword').value='';}
+
+client.auth.onAuthStateChange((event,session)=>{if(session){showApp();}else{showLogin();}});
+
+async function uploadFiles(){const files=document.getElementById('files').files;for(const f of files){document.getElementById('status').innerText='Enviando '+f.name;const name=Date.now()+'_'+f.name;const {error}=await client.storage.from(bucket).upload(name,f);if(error)alert(error.message);}loadFiles();document.getElementById('status').innerText='Upload concluído';}async function loadFiles(){const {data,error}=await client.storage.from(bucket).list('',{limit:1000});if(error)return;const gal=document.getElementById('gallery');gal.innerHTML='';for(const file of data){const {data:urlData}=client.storage.from(bucket).getPublicUrl(file.name);const url=urlData.publicUrl;const isVideo=/\.(mp4|mov|webm|avi|mkv)$/i.test(file.name);const card=document.createElement('div');card.className='card';card.dataset.name=file.name.toLowerCase();card.dataset.type=isVideo?'video':'image';card.innerHTML=(isVideo?`<video onclick="openMedia('${url}','video')" src='${url}'></video>`:`<img onclick="openMedia('${url}','image')" src='${url}'>`)+`<div class='info'>${file.name}</div><button class='delete' onclick="deleteFile('${file.name}')">Excluir</button>`;gal.appendChild(card);}applyFilter();}async function deleteFile(name){if(!confirm('Excluir arquivo?'))return;await client.storage.from(bucket).remove([name]);loadFiles();}function openMedia(url,type){const m=document.getElementById('modal');m.style.display='flex';m.innerHTML=type==='video'?`<video controls autoplay src='${url}'></video>`:`<img src='${url}'>`;}function applyFilter(){const s=document.getElementById('search').value.toLowerCase();const t=document.getElementById('filter').value;document.querySelectorAll('.card').forEach(c=>{const ok=(t==='all'||c.dataset.type===t)&&c.dataset.name.includes(s);c.style.display=ok?'block':'none';});}document.getElementById('search').oninput=applyFilter;document.getElementById('filter').onchange=applyFilter;</script></body></html>
